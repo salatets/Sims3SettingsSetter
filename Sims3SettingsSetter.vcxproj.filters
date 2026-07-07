@@ -37,15 +37,6 @@
     <ClCompile Include="patches\gc_stop_world_patch.cpp">
       <Filter>patches</Filter>
     </ClCompile>
-    <ClCompile Include="patches\lot_streaming_settings_patch.cpp">
-      <Filter>patches</Filter>
-    </ClCompile>
-    <ClCompile Include="patches\lot_visibility_camera_patch.cpp">
-      <Filter>patches</Filter>
-    </ClCompile>
-    <ClCompile Include="patches\map_view_lot_blocker_patch.cpp">
-      <Filter>patches</Filter>
-    </ClCompile>
     <ClCompile Include="patches\timer_optimization_patch.cpp">
       <Filter>patches</Filter>
     </ClCompile>
@@ -97,6 +88,9 @@
       <Filter>patches</Filter>
     </ClCompile>
     <ClCompile Include="patches\brady_bunch_begone_patch.cpp">
+      <Filter>patches</Filter>
+    </ClCompile>
+    <ClCompile Include="patches\lot_streaming_optimizations_patch.cpp">
       <Filter>patches</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,4 +1,4 @@
-# Sims 3 Settings Setter v1.6.1
+# Sims 3 Settings Setter v1.6.2
 
 Performance patcher and setting editor for The Sims 3.
 
@@ -29,8 +29,6 @@ What you probably came here for. A collection of ASM patches to not only improve
   - **Now includes a frame-rate limiter** (default: 60 FPS) with a separate inactive window limit. Can be safely toggled on/off at any time.
   - **It is recommended you still use the original [Smooth Patch’s](https://modthesims.info/d/658759/smooth-patch-2-1.html) .package file**
 - **Timer Optimization** - Increases/reduces timer resolution to 1ms.
-- **Optimized Lot Streaming Settings**  -Enables lot throttling and tweaks camera speed threshold settings so lots load more smoothly when you stop moving. Major improvement.
-- **Lot Visibility Camera Override** - Stops lot loading based on camera view, should make it so they only load around you. Might not do anything.
 - **CPU Thread Optimization\*** - Optimizes thread placement for modern CPUs with P/E-cores or multiple CCXs.
   - This also doubles as an ’Alder Lake patch’ for people using that series of CPU, so it is enabled by default.
   - Requires a restart to apply.
@@ -62,8 +60,12 @@ What you probably came here for. A collection of ASM patches to not only improve
 - **GC_stop_world() Optimization** - Early exit for a GC function called ~once per frame, very minor improvement, driveby patch.
 - **Chunky Patch - Disable GC_try_to_collect()** - Removes the explicit garbage collection call from the simulation loop. GC profiling shows this function dominates simulation thread time. Should improve Simulate calls quite dramatically. Relies on `GC_malloc` to trigger collection naturally when memory pressure requires it.
   - May increase memory usage
-- **Map View Lot Streaming Blocker** - Prevents lot streaming while in map view, makes going in and out of map a lot less stuttery.
-  - Experimental as it has a known issue where the toggle gets stuck on the "don’t load" path. If your lots aren’t loading in, try disabling this first
+- **Lot Streaming Optimizations** - A collection of lot-streaming related patches to reduce stutter when visiting lots, each part is toggleable:
+  - *Object Throttle* - New! Spreads a lot's object building/loading across multiple frames instead of one big fps-tanking burst. Tunable objects-per-window and delay.
+  - *Map View Blocker* - Pauses lot streaming while in map view, so going in and out of map doesn't stutter if the same lots are loaded. Now fixed so it doesn't get stuck on.
+  - *Lot Visibility Override* - Stops lots loading/unloading based purely on camera view angle, so they only load around you.
+  - *Optimized Streaming Settings* - Enables/tweaks two hidden settings for lot LoD throttling and tweaks the camera speed threshold so lots load more smoothly when you stop moving. Makes lots load one by one instead of 8 at once
+  - Replaces the old separate **Optimized Lot Streaming Settings**, **Lot Visibility Camera Override** and **Map View Lot Streaming Blocker** patches.
 - **Disable Store Featured Items Download** - Blocks the game from downloading featured store items listings, preventing hte FeaturedItems folder from filling up.
 - **Resolution Spoofer** - Injects fake resolutions (1440p, 4K, 5K, 6K) for downsampling. Makes the game look real good!
   - You’ll want a [mod to fix the UI scaling](https://github.com/just-harry/tiny-ui-fix-for-ts3) as well.

@@ -52,14 +52,6 @@ class SettingsHook {
     void* originalFunc;
     std::string hookName;
 
-    static std::string WideToNarrow(const wchar_t* str) {
-        if (!str) return "null";
-        int size = WideCharToMultiByte(CP_UTF8, 0, str, -1, nullptr, 0, nullptr, nullptr);
-        std::string result(size, 0);
-        WideCharToMultiByte(CP_UTF8, 0, str, -1, &result[0], size, nullptr, nullptr);
-        return result;
-    }
-
     template <typename T> static bool IsSafeToRead(void* ptr, size_t size = sizeof(T)) {
         if (!ptr) return false;
         __try {
@@ -67,18 +59,6 @@ class SettingsHook {
             for (size_t i = 0; i < size; i++) { dummy = reinterpret_cast<char*>(ptr)[i]; }
             return true;
         } __except (EXCEPTION_EXECUTE_HANDLER) { return false; }
-    }
-
-    void LogBasicInfo(std::stringstream& log, void* thisPtr, void* targetAddr, const wchar_t* name) {
-        log << "\n=== " << hookName << " Access ===\n";
-        log << "This ptr: 0x" << std::hex << thisPtr << "\n";
-        log << "Target Address: 0x" << std::hex << targetAddr << "\n";
-
-        if (name && IsSafeToRead<wchar_t>(const_cast<wchar_t*>(name))) {
-            log << "Setting Name: \"" << WideToNarrow(name) << "\"\n";
-        } else {
-            log << "Setting Name: <INVALID PTR>\n";
-        }
     }
 
     void RegisterSetting(void* targetAddr, const wchar_t* name, const Setting::ValueType& defaultValue, float min = 0.0f, float max = 1.0f, float step = 0.1f) {
@@ -90,16 +70,6 @@ class SettingsHook {
         metadata.max = max;
         metadata.step = step; //Step for WHAT why is this here like is there a UI I'm missing?????? Why is there a min/max!!!
         //I'm guessing theres some kind of debug UI, there is a call for it in VTBL_VARIABLE_COMMAND but I can't figure out how to actually trigger it
-
-        // Add debug logging
-        std::stringstream log;
-        log << "Registering setting:\n"
-            << "  Name: " << WideToNarrow(name) << "\n"
-            << "  Address: 0x" << std::hex << targetAddr << "\n"
-            << "  Min: " << std::fixed << min << "\n"
-            << "  Max: " << max << "\n"
-            << "  Step: " << step << "\n";
-        LOG_DEBUG(log.str());
 
         auto setting = std::make_unique<Setting>(targetAddr, metadata, defaultValue);
         SettingsManager::Get().RegisterSetting(name, std::move(setting));
@@ -207,16 +177,11 @@ class VariableRegistryHook : public SettingsHook {
             auto& settingsManager = SettingsManager::Get();
 
             if (!settingsManager.IsInitialized()) {
-                LOG_INFO("All settings appear to be registered, saving default values");
                 settingsManager.SetInitialized(true);
 
                 // Save default settings
                 std::string error;
-                if (!ConfigStore::Get().SaveDefaults(&error)) {
-                    LOG_ERROR("Failed to save default settings: " + error);
-                } else {
-                    LOG_INFO("Successfully saved default settings");
-                }
+                if (!ConfigStore::Get().SaveDefaults(&error)) { LOG_ERROR("Failed to save default settings: " + error); }
             }
         }
     }
@@ -395,28 +360,13 @@ class CustomDebugVarHook : public SettingsHook {
 
     void HookFunc(int param2, int param3, wchar_t* name, int param5, int param6, float param7, float param8, float param9) {
 
-        // Log raw parameters
-        std::stringstream rawLog;
-        rawLog << "CustomDebugVar Raw - param2: " << param2 << ", param3: 0x" << std::hex << param3 << ", param5: " << std::dec << param5 << ", param6: " << param6 << ", range: [" << param7 << " to " << param8 << "]"
-               << ", step: " << param9 << "\n";
-        LOG_DEBUG(rawLog.str());
-
         // param3 is the direct address of the value
         void* valueAddr = reinterpret_cast<void*>(param3);
-
-        // Log basic info
-        std::stringstream log;
-        instance->LogBasicInfo(log, this, valueAddr, name);
-        LOG_DEBUG(log.str());
 
         // Register the setting
         if (valueAddr && name) {
             //param2 is the type which relates to FUN_005a1340
             SettingType type = static_cast<SettingType>(param2);
-
-            std::stringstream regLog;
-            regLog << "Registering setting type " << static_cast<int>(type) << " at address 0x" << std::hex << valueAddr << "\n";
-            LOG_DEBUG(regLog.str());
 
             switch (type) {
             case SettingType::Int32:
@@ -519,10 +469,7 @@ class HookManager {
 
   private:
     template <typename T> void AddHook(const char* name, uintptr_t offset) {
-        if (auto addr = vtm.GetFunctionAddress(name, offset)) {
-            hooks.emplace_back(new T(addr));
-            LOG_INFO("HookManager: Added " + std::string(name) + " hook");
-        }
+        if (auto addr = vtm.GetFunctionAddress(name, offset)) { hooks.emplace_back(new T(addr)); }
     }
 };
 

@@ -33,6 +33,11 @@ typedef void*(__cdecl* AlignedReallocFunc)(void*, size_t, size_t);
 typedef size_t(__cdecl* MsizeFunc)(void*);
 typedef void*(__cdecl* ExpandFunc)(void*, size_t);
 typedef void*(__cdecl* RecallocFunc)(void*, size_t, size_t);
+typedef void*(__cdecl* AlignedOffsetMallocFunc)(size_t, size_t, size_t);
+typedef void*(__cdecl* AlignedOffsetReallocFunc)(void*, size_t, size_t, size_t);
+typedef void*(__cdecl* AlignedRecallocFunc)(void*, size_t, size_t, size_t);
+typedef void*(__cdecl* AlignedOffsetRecallocFunc)(void*, size_t, size_t, size_t, size_t);
+typedef size_t(__cdecl* AlignedMsizeFunc)(void*, size_t, size_t);
 
 static MallocFunc original_malloc = nullptr;
 static FreeFunc original_free = nullptr;
@@ -44,6 +49,11 @@ static AlignedReallocFunc original_aligned_realloc = nullptr;
 static MsizeFunc original_msize = nullptr;
 static ExpandFunc original_expand = nullptr;
 static RecallocFunc original_recalloc = nullptr;
+static AlignedOffsetMallocFunc original_aligned_offset_malloc = nullptr;
+static AlignedOffsetReallocFunc original_aligned_offset_realloc = nullptr;
+static AlignedRecallocFunc original_aligned_recalloc = nullptr;
+static AlignedOffsetRecallocFunc original_aligned_offset_recalloc = nullptr;
+static AlignedMsizeFunc original_aligned_msize = nullptr;
 
 // Safe wrappers
 void* __cdecl HookedMalloc(size_t size) {
@@ -129,6 +139,48 @@ void* __cdecl SafeRecalloc(void* p, size_t count, size_t size) {
     }
 }
 
+void* __cdecl HookedAlignedOffsetMalloc(size_t size, size_t alignment, size_t offset) {
+    return mi_malloc_aligned_at(size, alignment, offset);
+}
+
+void* __cdecl SafeAlignedOffsetRealloc(void* p, size_t size, size_t alignment, size_t offset) {
+    if (!p) return mi_malloc_aligned_at(size, alignment, offset);
+    if (mi_is_in_heap_region(p)) {
+        return mi_realloc_aligned_at(p, size, alignment, offset);
+    } else {
+        if (original_aligned_offset_realloc) return original_aligned_offset_realloc(p, size, alignment, offset);
+        return nullptr;
+    }
+}
+
+void* __cdecl SafeAlignedRecalloc(void* p, size_t count, size_t size, size_t alignment) {
+    if (!p || mi_is_in_heap_region(p)) {
+        return mi_recalloc_aligned(p, count, size, alignment);
+    } else {
+        if (original_aligned_recalloc) return original_aligned_recalloc(p, count, size, alignment);
+        return nullptr;
+    }
+}
+
+void* __cdecl SafeAlignedOffsetRecalloc(void* p, size_t count, size_t size, size_t alignment, size_t offset) {
+    if (!p || mi_is_in_heap_region(p)) {
+        return mi_recalloc_aligned_at(p, count, size, alignment, offset);
+    } else {
+        if (original_aligned_offset_recalloc) return original_aligned_offset_recalloc(p, count, size, alignment, offset);
+        return nullptr;
+    }
+}
+
+size_t __cdecl SafeAlignedMsize(void* p, size_t alignment, size_t offset) {
+    if (!p) return 0;
+    if (mi_is_in_heap_region(p)) {
+        return mi_usable_size(p);
+    } else {
+        if (original_aligned_msize) return original_aligned_msize(p, alignment, offset);
+        return 0;
+    }
+}
+
 // Helper to check if hooks should be enabled from config.
 // Runs at DLL_PROCESS_ATTACH, before HookThread, so we parse the TOML/INI directly without going through ConfigStore or other singletons.
 bool ShouldEnableAllocatorHooks() {
@@ -191,6 +243,7 @@ void InitializeAllocatorHooks() {
     LOG_INFO("Initializing Allocator Hooks (mimalloc via Detours)...");
 
     // Use LoadLibrary instead of GetModuleHandle - at DLL_PROCESS_ATTACH time, MSVCR80.dll may not be loaded yet...
+    // MSVCR80 is the only CRT worth hooking: it's the game's (VC8) runtime and MSVCP80/operator new funnel into it, while the other loaded CRTs (msvcrt/ucrtbase/msvcp_win) are OS-side only. x
     HMODULE hMsvcr80 = LoadLibraryA("MSVCR80.dll");
     if (!hMsvcr80) {
         LOG_ERROR("Failed to load MSVCR80.dll! Cannot install hooks.");
@@ -215,6 +268,11 @@ void InitializeAllocatorHooks() {
     original_msize = (MsizeFunc)GetProc("_msize");
     original_expand = (ExpandFunc)GetProc("_expand");
     original_recalloc = (RecallocFunc)GetProc("_recalloc");
+    original_aligned_offset_malloc = (AlignedOffsetMallocFunc)GetProc("_aligned_offset_malloc");
+    original_aligned_offset_realloc = (AlignedOffsetReallocFunc)GetProc("_aligned_offset_realloc");
+    original_aligned_recalloc = (AlignedRecallocFunc)GetProc("_aligned_recalloc");
+    original_aligned_offset_recalloc = (AlignedOffsetRecallocFunc)GetProc("_aligned_offset_recalloc");
+    original_aligned_msize = (AlignedMsizeFunc)GetProc("_aligned_msize");
 
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
@@ -259,6 +317,26 @@ void InitializeAllocatorHooks() {
     }
     if (original_recalloc) {
         DetourAttach(&(PVOID&)original_recalloc, SafeRecalloc);
+        hookCount++;
+    }
+    if (original_aligned_offset_malloc) {
+        DetourAttach(&(PVOID&)original_aligned_offset_malloc, HookedAlignedOffsetMalloc);
+        hookCount++;
+    }
+    if (original_aligned_offset_realloc) {
+        DetourAttach(&(PVOID&)original_aligned_offset_realloc, SafeAlignedOffsetRealloc);
+        hookCount++;
+    }
+    if (original_aligned_recalloc) {
+        DetourAttach(&(PVOID&)original_aligned_recalloc, SafeAlignedRecalloc);
+        hookCount++;
+    }
+    if (original_aligned_offset_recalloc) {
+        DetourAttach(&(PVOID&)original_aligned_offset_recalloc, SafeAlignedOffsetRecalloc);
+        hookCount++;
+    }
+    if (original_aligned_msize) {
+        DetourAttach(&(PVOID&)original_aligned_msize, SafeAlignedMsize);
         hookCount++;
     }
 

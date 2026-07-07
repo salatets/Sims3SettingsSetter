@@ -201,8 +201,6 @@ void SettingsManager::ResetSettingToDefault(const std::wstring& name) {
         settingIt->second->SetValue(defaultIt->second);
         settingIt->second->SetUnsavedChanges(true);
         settingIt->second->SetOverridden(true);
-
-        LOG_DEBUG("Reset setting " + Utils::WideToUtf8(name) + " to default value");
     }
 }
 
@@ -216,8 +214,6 @@ void SettingsManager::ResetAllSettings() {
             settingIt->second->SetOverridden(true);
         }
     }
-
-    LOG_INFO("Reset all settings to default values");
 }
 
 // TOML Serialization
@@ -412,25 +408,14 @@ void SettingsManager::LoadDefaultsFromToml(const toml::table& root) {
 }
 
 void SettingsManager::ManualInitialize() {
-    if (m_initialized) {
-        LOG_DEBUG("Settings already initialized, ignoring manual initialization request");
-        return;
-    }
-
-    LOG_INFO("Manual initialization requested by user");
+    if (m_initialized) { return; }
 
     // Set initialized flag
     m_initialized = true;
 
     // Save default settings via ConfigStore
     std::string error;
-    if (!ConfigStore::Get().SaveDefaults(&error)) {
-        LOG_ERROR("Failed to save default settings during manual init: " + error);
-    } else {
-        LOG_INFO("Successfully saved default settings during manual init");
-    }
-
-    LOG_INFO("Manual initialization completed");
+    if (!ConfigStore::Get().SaveDefaults(&error)) { LOG_ERROR("Failed to save default settings during manual init: " + error); }
 }
 
 bool SettingsManager::HasAnyUnsavedChanges() const {

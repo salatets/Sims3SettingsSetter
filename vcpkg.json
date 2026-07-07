@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-  "builtin-baseline": "15e5f3820f0370f1ba7150853762cec0688cd396",
+  "builtin-baseline": "d87340acc46bdeda386037b38aca30136e667e47",
   "dependencies": [
     {
       "name": "imgui",

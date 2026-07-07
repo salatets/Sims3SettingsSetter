@@ -142,7 +142,6 @@
     <ClCompile Include="patches\gc_finalize_throttle_patch.cpp" />
     <ClCompile Include="patches\gc_stop_world_patch.cpp" />
     <ClCompile Include="patches\gc_try_to_collect_patch.cpp" />
-    <ClCompile Include="patches\map_view_lot_blocker_patch.cpp" />
     <ClCompile Include="patches\mimalloc_patch.cpp" />
     <ClCompile Include="patches\online_nuke_patch.cpp" />
     <ClCompile Include="patches\oversized_thread_stack_fix_patch.cpp" />
@@ -162,13 +161,12 @@
     <ClCompile Include="qol.cpp" />
     <ClCompile Include="settings.cpp" />
     <ClCompile Include="vtable_manager.cpp" />
-    <ClCompile Include="patches\lot_streaming_settings_patch.cpp" />
-    <ClCompile Include="patches\lot_visibility_camera_patch.cpp" />
     <ClCompile Include="patches\cpu_optimization_patch_register.cpp" />
     <ClCompile Include="patches\createfileW_patch.cpp" />
     <ClCompile Include="patches\animation_blend_patch.cpp" />
     <ClCompile Include="patches\split_level_lighting_fix_patch.cpp" />
     <ClCompile Include="patches\brady_bunch_begone_patch.cpp" />
+    <ClCompile Include="patches\lot_streaming_optimizations_patch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

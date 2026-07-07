@@ -138,10 +138,7 @@ void RenderUI() {
                     // Settings list with scrolling
                     ImGui::BeginChild("SettingsList", ImVec2(0, 0), true);
                     {
-                        if (m_needsSort) {
-                            LOG_DEBUG("Resorting settings categories...");
-                            m_needsSort = false;
-                        }
+                        if (m_needsSort) { m_needsSort = false; }
 
                         // Group settings by category
                         std::map<std::wstring, std::vector<Setting*>> categorizedSettings;
